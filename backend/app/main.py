@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from .db import engine, init_db, SessionLocal  # ← THÊM SessionLocal, Base
+from .db import engine, init_db, SessionLocal, Base  # ← ĐÃ CÓ Base
 from passlib.context import CryptContext
 import os
 
@@ -13,7 +13,7 @@ pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 app = FastAPI(title="Demo API (FastAPI + Postgres)")
 
 # CORS
-origins_str = os.getenv("CORS_ORIGINS", "http://localhost,http://localhost:5173, http://54.253.9.71")
+origins_str = os.getenv("CORS_ORIGINS", "http://localhost,http://localhost:5173,http://54.253.9.71")
 origins = origins_str.split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -39,12 +39,11 @@ def get_db():
     finally:
         db.close()
 
-
-# Startup: Tạo bảng items + users
+# Startup: Tạo bảng items + users (nếu chưa có)
 @app.on_event("startup")
 def on_startup():
-    init_db()  # Tạo bảng items
-    Base.metadata.create_all(bind=engine)  # ← TẠO BẢNG USERS TỰ ĐỘNG
+    init_db()  # Tạo bảng items + users bằng SQL
+    Base.metadata.create_all(bind=engine)  # Đảm bảo ORM nhận diện bảng
 
 
 # -------------------------------------------
