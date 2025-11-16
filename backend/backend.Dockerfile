@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY backend/requirements.txt /app/requirements.txt
 RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir argon2-cffi
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY backend/app /app/app
