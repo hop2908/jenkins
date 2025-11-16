@@ -7,7 +7,8 @@ from passlib.context import CryptContext
 import os
 
 # Dùng argon2 để tránh lỗi bcrypt và không giới hạn độ dài password
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+# MỚI: DÙNG bcrypt – KHÔNG CẦN argon2-cffi
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI(title="Demo API (FastAPI + Postgres)")
 
