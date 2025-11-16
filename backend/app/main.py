@@ -12,7 +12,7 @@ pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 app = FastAPI(title="Demo API (FastAPI + Postgres)")
 
 # CORS
-origins_str = os.getenv("CORS_ORIGINS", "http://localhost,http://localhost:5173")
+origins_str = os.getenv("CORS_ORIGINS", "http://localhost,http://localhost:5173, http://54.253.9.71")
 origins = origins_str.split(",")
 app.add_middleware(
     CORSMiddleware,

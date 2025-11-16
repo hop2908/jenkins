@@ -6,12 +6,12 @@ export default function TodoList({ logout }: { logout: () => void }) {
   const [title, setTitle] = useState("");
 
   async function refresh() {
-    const h = await fetch("http://localhost:8000/api/health")
+    const h = await fetch("http://54.253.9.71/api/health")
       .then((r) => r.json())
       .catch(() => ({ status: "fail" }));
     setHealth(h.status ?? "fail");
 
-    const it = await fetch("http://localhost:8000/api/items")
+    const it = await fetch("http://54.253.9.71/api/items")
       .then((r) => r.json())
       .catch(() => ({ items: [] }));
     setItems(it.items || []);
@@ -25,7 +25,7 @@ export default function TodoList({ logout }: { logout: () => void }) {
     }
     if (!title.trim()) return;
 
-    await fetch("http://localhost:8000/api/items", {
+    await fetch("http://54.253.9.71/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
