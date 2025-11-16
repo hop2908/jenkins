@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import text
-from .db import engine, init_db
+from sqlalchemy.orm import Session
+from .db import engine, init_db, SessionLocal, Base  # ← THÊM SessionLocal, Base
 from passlib.context import CryptContext
 import os
 
@@ -30,11 +31,20 @@ class UserIn(BaseModel):
     username: str
     password: str
 
+# Dependency để lấy DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# Startup
+
+# Startup: Tạo bảng items + users
 @app.on_event("startup")
 def on_startup():
-    init_db()
+    init_db()  # Tạo bảng items
+    Base.metadata.create_all(bind=engine)  # ← TẠO BẢNG USERS TỰ ĐỘNG
 
 
 # -------------------------------------------
@@ -74,42 +84,41 @@ def create_item(item: ItemIn):
 # AUTH: REGISTER + LOGIN
 # -------------------------------------------
 @app.post("/api/register")
-def register(user: UserIn):
+def register(user: UserIn, db: Session = Depends(get_db)):
     if not user.username or not user.password:
         raise HTTPException(status_code=400, detail="Username and password are required")
 
-    with engine.begin() as conn:
-        existing = conn.execute(
-            text("SELECT * FROM users WHERE username = :u"),
-            {"u": user.username}
-        ).fetchone()
+    existing = db.execute(
+        text("SELECT * FROM users WHERE username = :u"),
+        {"u": user.username}
+    ).fetchone()
 
-        if existing:
-            raise HTTPException(status_code=400, detail="Username already exists")
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already exists")
 
-        hashed = pwd_context.hash(user.password)
+    hashed = pwd_context.hash(user.password)
 
-        conn.execute(
-            text("INSERT INTO users (username, password) VALUES (:u, :p)"),
-            {"u": user.username, "p": hashed}
-        )
+    db.execute(
+        text("INSERT INTO users (username, password) VALUES (:u, :p)"),
+        {"u": user.username, "p": hashed}
+    )
+    db.commit()
 
     return {"message": "User registered successfully"}
 
 
 @app.post("/api/login")
-def login(user: UserIn):
-    with engine.connect() as conn:
-        db_user = conn.execute(
-            text("SELECT * FROM users WHERE username = :u"),
-            {"u": user.username}
-        ).fetchone()
+def login(user: UserIn, db: Session = Depends(get_db)):
+    db_user = db.execute(
+        text("SELECT * FROM users WHERE username = :u"),
+        {"u": user.username}
+    ).fetchone()
 
-        if not db_user:
-            raise HTTPException(status_code=401, detail="Invalid username or password")
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
-        if not pwd_context.verify(user.password, db_user.password):
-            raise HTTPException(status_code=401, detail="Invalid username or password")
+    if not pwd_context.verify(user.password, db_user.password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
     return {"message": "Login successful"}
 
@@ -118,39 +127,38 @@ def login(user: UserIn):
 # USERS CRUD
 # -------------------------------------------
 @app.get("/api/users")
-def get_users():
-    with engine.connect() as conn:
-        rows = conn.execute(
-            text("SELECT id, username FROM users ORDER BY id DESC")
-        ).mappings().all()
-        return {"users": list(rows)}
+def get_users(db: Session = Depends(get_db)):
+    rows = db.execute(
+        text("SELECT id, username FROM users ORDER BY id DESC")
+    ).mappings().all()
+    return {"users": list(rows)}
 
 
 @app.put("/api/users/{user_id}")
-def update_user(user_id: int, user: UserIn):
+def update_user(user_id: int, user: UserIn, db: Session = Depends(get_db)):
     hashed = pwd_context.hash(user.password)
 
-    with engine.begin() as conn:
-        result = conn.execute(
-            text("UPDATE users SET username = :u, password = :p WHERE id = :i"),
-            {"u": user.username, "p": hashed, "i": user_id}
-        )
+    result = db.execute(
+        text("UPDATE users SET username = :u, password = :p WHERE id = :i"),
+        {"u": user.username, "p": hashed, "i": user_id}
+    )
+    db.commit()
 
-        if result.rowcount == 0:
-            raise HTTPException(status_code=404, detail="User not found")
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="User not found")
 
     return {"message": "User updated successfully"}
 
 
 @app.delete("/api/users/{user_id}")
-def delete_user(user_id: int):
-    with engine.begin() as conn:
-        result = conn.execute(
-            text("DELETE FROM users WHERE id = :i"),
-            {"i": user_id}
-        )
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    result = db.execute(
+        text("DELETE FROM users WHERE id = :i"),
+        {"i": user_id}
+    )
+    db.commit()
 
-        if result.rowcount == 0:
-            raise HTTPException(status_code=404, detail="User not found")
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="User not found")
 
     return {"message": "User deleted successfully"}
