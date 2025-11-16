@@ -88,7 +88,10 @@ def register(user: UserIn):
         if existing:
             raise HTTPException(status_code=400, detail="Username already exists")
 
-        hashed = pwd_context.hash(user.password)
+        password_bytes = user.password.encode('utf-8')
+        if len(password_bytes) > 72:
+            password_bytes = password_bytes[:72]
+        hashed = pwd_context.hash(password_bytes.decode('utf-8'))
 
         conn.execute(
             text("INSERT INTO users (username, password) VALUES (:u, :p)"),
