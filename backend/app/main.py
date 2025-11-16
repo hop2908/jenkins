@@ -7,8 +7,7 @@ from passlib.context import CryptContext
 import os
 
 # Dùng argon2 để tránh lỗi bcrypt và không giới hạn độ dài password
-# MỚI: DÙNG bcrypt – KHÔNG CẦN argon2-cffi
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 app = FastAPI(title="Demo API (FastAPI + Postgres)")
 
@@ -88,12 +87,7 @@ def register(user: UserIn):
         if existing:
             raise HTTPException(status_code=400, detail="Username already exists")
 
-        if len(user.password) > 72:
-            password_to_hash = user.password[:72]
-        else:
-            password_to_hash = user.password
-
-        hashed = pwd_context.hash(password_to_hash)
+        hashed = pwd_context.hash(user.password)
 
         conn.execute(
             text("INSERT INTO users (username, password) VALUES (:u, :p)"),
