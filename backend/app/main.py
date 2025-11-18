@@ -13,7 +13,7 @@ pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 app = FastAPI(title="Demo API (FastAPI + Postgres)")
 
 # CORS
-origins_str = os.getenv("CORS_ORIGINS", "http://localhost,http://localhost:5173,http://54.253.9.71")
+origins_str = os.getenv("CORS_ORIGINS", "http://localhost,http://localhost:5173,http://13.210.56.18/")
 origins = origins_str.split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -80,6 +80,33 @@ def create_item(item: ItemIn):
 
 
 # -------------------------------------------
+# THÊM: SỬA TODO
+@app.put("/api/items/{item_id}")
+def update_item(item_id: int, item: ItemIn):
+    if not item.title.strip():
+        raise HTTPException(status_code=400, detail="Title is required.")
+
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("UPDATE items SET title = :t WHERE id = :i"),
+            {"t": item.title, "i": item_id}
+        )
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Item not found")
+
+    return {"message": "Item updated successfully"}
+# THÊM: XÓA TODO
+@app.delete("/api/items/{item_id}")
+def delete_item(item_id: int):
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("DELETE FROM items WHERE id = :i"),
+            {"i": item_id}
+        )
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Item not found")
+
+    return {"message": "Item deleted successfully"}
 # AUTH: REGISTER + LOGIN
 # -------------------------------------------
 @app.post("/api/register")

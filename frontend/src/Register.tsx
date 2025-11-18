@@ -8,7 +8,7 @@ export default function Register({ goLogin }: { goLogin: () => void }) {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
 
-    const res = await fetch("http://54.253.9.71/api/register", {
+    const res = await fetch("http://13.210.56.18/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
