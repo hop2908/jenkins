@@ -113,7 +113,7 @@ const updateItem = async (id: number) => {
       </div>
 
       <p>
-        Backend health: <b>{health}</b>
+        Test connect backend: <b>{health}</b>
       </p>
 
       <form onSubmit={addItem} style={{ display: "flex", gap: 8, marginBottom: 20 }}>
